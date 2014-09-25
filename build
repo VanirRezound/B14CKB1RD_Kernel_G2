@@ -1,5 +1,5 @@
 #!/bin/bash
-build=/home/rev3nt3ch/B14CKB1RD-G2/zips/
+build=/home/rev3nt3ch/B14CKB1RD-G2/zips/msm8974-zips/
 kernel="B14CKBIRD-Kernel-G2"
 toolchain=/home/rev3nt3ch/B14CKB1RD-G2/toolchains/arm-eabi-4.10-sm/bin
 toolchain2="arm-eabi-"
@@ -18,37 +18,37 @@ case "$choice" in
 	"d800")
 		variant="d800"
 		config="d800_defconfig"
-		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/kernel_lge_msm8974_ramdisk/ramdisk/d800.lz4
+		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/B14CKB1RD_Kernel_G2_ramdisk/ramdisk/d800.lz4
 		break;;
 	"d801")
 		variant="d801"
 		config="d801_defconfig"
-		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/kernel_lge_msm8974_ramdisk/ramdisk/d801.lz4
+		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/B14CKB1RD_Kernel_G2_ramdisk/ramdisk/d801.lz4
 		break;;
 	"d802")
 		variant="d802"
 		config="d802_defconfig"
-		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/kernel_lge_msm8974_ramdisk/ramdisk/d802.lz4
+		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/B14CKB1RD_Kernel_G2_ramdisk/ramdisk/d802.lz4
 		break;;
 	"d803")
 		variant="d803"
 		config="d803_defconfig"
-		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/kernel_lge_msm8974_ramdisk/ramdisk/d803.lz4
+		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/B14CKB1RD_Kernel_G2_ramdisk/ramdisk/d803.lz4
 		break;;
 	"ls980")
 		variant="ls980"
 		config="ls980_defconfig"
-		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/kernel_lge_msm8974_ramdisk/ramdisk/ls980.lz4
+		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/B14CKB1RD_Kernel_G2_ramdisk/ramdisk/ls980.lz4
 		break;;
 	"vs980")
 		variant="vs980"
 		config="vs980_defconfig"
-		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/kernel_lge_msm8974_ramdisk/ramdisk/vs980.lz4
+		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/B14CKB1RD_Kernel_G2_ramdisk/ramdisk/vs980.lz4
 		break;;
 	"f320x")
 		variant="f320x"
 		config="f320x_defconfig"
-		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/kernel_lge_msm8974_ramdisk/ramdisk/f320x.lz4
+		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/B14CKB1RD_Kernel_G2_ramdisk/ramdisk/f320x.lz4
 		break;;
 esac
 done
@@ -78,7 +78,7 @@ case "$target" in
 	"aosp")
 		rdflag=2
 		rom="AOSP"
-		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/kernel_lge_msm8974_ramdisk/ramdisk_aosp
+		ramdisk=/home/rev3nt3ch/B14CKB1RD-G2/kernel/B14CKB1RD_Kernel_G2_ramdisk/ramdisk_aosp
 		break;;
 esac
 done
