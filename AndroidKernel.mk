@@ -17,9 +17,13 @@ KERNEL_IMG=$(KERNEL_OUT)/arch/arm/boot/Image
 
 DTS_NAMES ?= $(shell $(PERL) -e 'while (<>) {$$a = $$1 if /CONFIG_ARCH_((?:MSM|QSD|MPQ)[a-zA-Z0-9]+)=y/; $$r = $$1 if /CONFIG_MSM_SOC_REV_(?!NONE)(\w+)=y/; $$arch = $$arch.lc("$$a$$r ") if /CONFIG_ARCH_((?:MSM|QSD|MPQ)[a-zA-Z0-9]+)=y/} print $$arch;' $(KERNEL_CONFIG))
 KERNEL_USE_OF ?= $(shell $(PERL) -e '$$of = "n"; while (<>) { if (/CONFIG_USE_OF=y/) { $$of = "y"; break; } } print $$of;' kernel/arch/arm/configs/$(KERNEL_DEFCONFIG))
+KERNEL_ENABLE_EXFAT ?= $(shell cat kernel/arch/arm/configs/$(KERNEL_DEFCONFIG) | egrep -v "^\s*\#" | egrep "CONFIG_EXFAT_FS" | sed 's/^\s*CONFIG_EXFAT_FS\s*=\s*//' )
+KERNEL_EXFAT_PATH ?= $(shell cat kernel/arch/arm/configs/$(KERNEL_DEFCONFIG) | egrep -v "^\s*\#" | egrep "CONFIG_EXFAT_PATH" | sed 's/^\s*CONFIG_EXFAT_PATH\s*=\s*\"//' | sed 's/\".*//' )
+KERNEL_EXFAT_VERSION ?= $(shell cat kernel/arch/arm/configs/$(KERNEL_DEFCONFIG) | egrep -v "^\s*\#" | egrep "CONFIG_EXFAT_VERSION" | sed 's/^\s*CONFIG_EXFAT_VERSION\s*=\s*\"//' | sed 's/\".*//' )
+BUILD_PATH ?= $(shell pwd)
 
 ifeq "$(KERNEL_USE_OF)" "y"
-DTS_FILES = $(wildcard $(TOP)/kernel/arch/arm/boot/dts/$(DTS_TARGET)/$(DTS_NAME)*.dts)
+DTS_FILES = $(wildcard $(TOP)/kernel/arch/arm/boot/dts/$(DTS_NAME)*.dts)
 DTS_FILE = $(lastword $(subst /, ,$(1)))
 DTB_FILE = $(addprefix $(KERNEL_OUT)/arch/arm/boot/,$(patsubst %.dts,%.dtb,$(call DTS_FILE,$(1))))
 ZIMG_FILE = $(addprefix $(KERNEL_OUT)/arch/arm/boot/,$(patsubst %.dts,%-zImage,$(call DTS_FILE,$(1))))
@@ -27,7 +31,7 @@ KERNEL_ZIMG = $(KERNEL_OUT)/arch/arm/boot/zImage
 DTC = $(KERNEL_OUT)/scripts/dtc/dtc
 
 define append-dtb
-mkdir -p $(KERNEL_OUT)/arch/arm/boot;\
+#mkdir -p $(KERNEL_OUT)/arch/arm/boot;\
 $(foreach DTS_NAME, $(DTS_NAMES), \
    $(foreach d, $(DTS_FILES), \
       $(DTC) -p 1024 -O dtb -o $(call DTB_FILE,$(d)) $(d); \
@@ -62,91 +66,86 @@ mpath=`dirname $$mdpath`; rm -rf $$mpath;\
 fi
 endef
 
-# LGE_CHANGE_S, vmware, donghoon.nam, 2013-12-03
-MVPD_MODULES := mvpkm.ko commkm.ko pvtcpkm.ko
-define rm-mvp-modules
-if [ "$(strip $(USES_VMWARE_VIRTUALIZATION))" = "true" ];then\
-rm -f $(addprefix $(KERNEL_MODULES_OUT)/,$(MVPD_MODULES));\
-fi
-endef
-# LGE_CHANGE_E, vmware, donghoon.nam, 2013-12-03
-
 $(KERNEL_OUT):
 	mkdir -p $(KERNEL_OUT)
 
-# LGE_CHANGE_S
-# porting bootchart2 to android
-# # byungchul.park@lge.com 20120620
-ifeq ($(INIT_BOOTCHART2),true)
-KERNEL_DEFCONFIG_PATH:=kernel/arch/arm/configs/$(KERNEL_DEFCONFIG)
-KERNEL_DEFCONFIG_BC2_PATH:=kernel/arch/arm/configs/bc2_$(KERNEL_DEFCONFIG)
-
-bootchart2defconfig:
-	cp -f $(KERNEL_DEFCONFIG_PATH) $(KERNEL_DEFCONFIG_BC2_PATH)
-	echo "CONFIG_TASKSTATS=y" >> $(KERNEL_DEFCONFIG_BC2_PATH)
-	echo "CONFIG_TASK_DELAY_ACCT=y" >> $(KERNEL_DEFCONFIG_BC2_PATH)
-	echo "CONFIG_TASK_XACCT=y" >> $(KERNEL_DEFCONFIG_BC2_PATH)
-	echo "CONFIG_TASK_IO_ACCOUNTING=y" >> $(KERNEL_DEFCONFIG_BC2_PATH)
-	echo "CONFIG_CONNECTOR=y" >> $(KERNEL_DEFCONFIG_BC2_PATH)
-	echo "CONFIG_PROC_EVENTS=y" >> $(KERNEL_DEFCONFIG_BC2_PATH)
-
-
-$(KERNEL_CONFIG): $(KERNEL_OUT) bootchart2defconfig
-	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- bc2_$(KERNEL_DEFCONFIG)
-else
-# LGE_CHANGE_E
-
 $(KERNEL_CONFIG): $(KERNEL_OUT)
 	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- $(KERNEL_DEFCONFIG)
-ifneq ($(TARGET_BUILD_VARIANT), user)
-	echo "CONFIG_MMC_MSM_DEBUGFS=y" >> $(KERNEL_CONFIG)
-# LGE_CHANGE_S, vmware, donghoon.nam, 2013-12-03
-ifeq ($(strip $(USES_VMWARE_VIRTUALIZATION)), true)
-	echo "CONFIG_VMWARE_MVP_DEBUG=y" >> $(KERNEL_CONFIG)
-	echo "CONFIG_VMWARE_PVTCP_DEBUG=y" >> $(KERNEL_CONFIG)
-endif
-# LGE_CHANGE_E, vmware, donghoon.nam, 2013-12-03
-endif
-
-#[B1][WIFI][CMCC_CN]yongcan.guo for CHINA WAPI  CONFIG_BRCM_WAPI=y
-ifeq ($(TARGET_PRODUCT),b1_cmcc_cn)
-	echo "CONFIG_BRCM_WAPI=y" >> $(KERNEL_CONFIG)
-endif
-
-# LGE_CHANGE_S
-# porting bootchart2 to android
-# byungchul.park@lge.com 20120620
-endif
-# LGE_CHANGE_E
-
 
 $(KERNEL_OUT)/piggy : $(TARGET_PREBUILT_INT_KERNEL)
 	$(hide) gunzip -c $(KERNEL_OUT)/arch/arm/boot/compressed/piggy.gzip > $(KERNEL_OUT)/piggy
 
 $(TARGET_PREBUILT_INT_KERNEL): $(KERNEL_OUT) $(KERNEL_CONFIG) $(KERNEL_HEADERS_INSTALL)
+ifeq ($(KERNEL_ENABLE_EXFAT), m)
+	cp vendor/tuxera/exfat/tuxera_update_htc.sh kernel/
+	cp vendor/tuxera/exfat/update_tuxera.sh kernel/
+	cp vendor/tuxera/exfat/build_exfat.sh kernel/
+	cp -rf vendor/tuxera/exfat/texfat kernel/fs/
+	cp -rf vendor/tuxera/exfat/$(KERNEL_EXFAT_PATH) kernel/fs/
+	mkdir -p $(KERNEL_OUT)/fs/$(KERNEL_EXFAT_PATH)
+	# Update exFAT module after vmlinux but before modules
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- vmlinux
+ifeq ($(HTC_DEBUG_FLAG), DEBUG)
+ifeq ($(strip $(KERNEL_EXFAT_VERSION)),)
+	./kernel/update_tuxera.sh -p $(KERNEL_EXFAT_PATH) -t target/htc.d/htc -o $(KERNEL_OUT)
+else
+	./kernel/update_tuxera.sh -p $(KERNEL_EXFAT_PATH) -t $(KERNEL_EXFAT_VERSION) -o $(KERNEL_OUT)
+endif
+else
+ifeq ($(TARGET_BUILD_VARIANT), user)
+	$(warning "User-Release")
+ifeq ($(strip $(KERNEL_EXFAT_VERSION)),)
+	./kernel/update_tuxera.sh -p $(KERNEL_EXFAT_PATH) -t target/htc.d/htc -o $(KERNEL_OUT) -r
+else
+	./kernel/update_tuxera.sh -p $(KERNEL_EXFAT_PATH) -t $(KERNEL_EXFAT_VERSION) -o $(KERNEL_OUT) -r
+endif
+else
+	$(warning "NonUser-Release")
+ifeq ($(strip $(KERNEL_EXFAT_VERSION)),)
+	./kernel/update_tuxera.sh -p $(KERNEL_EXFAT_PATH) -t target/htc.d/htc -o $(KERNEL_OUT) -u
+else
+	./kernel/update_tuxera.sh -p $(KERNEL_EXFAT_PATH) -t $(KERNEL_EXFAT_VERSION) -o $(KERNEL_OUT) -u
+endif
+endif
+
+endif
+endif
 	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
 	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- modules
 	$(MAKE) -C kernel O=../$(KERNEL_OUT) INSTALL_MOD_PATH=../../$(KERNEL_MODULES_INSTALL) INSTALL_MOD_STRIP=1 ARCH=arm CROSS_COMPILE=arm-eabi- modules_install
-	
-ifeq ($(PRODUCT_SUPPORT_EXFAT), y)
-	@cp -f $(ANDROID_BUILD_TOP)/kernel/tuxera_update.sh $(ANDROID_BUILD_TOP)
-	@sh tuxera_update.sh --target target/lg.d/mobile-mtp-3013.6.27 --use-cache --latest --max-cache-entries 2 --source-dir $(ANDROID_BUILD_TOP)/kernel --output-dir $(ANDROID_BUILD_TOP)/$(KERNEL_OUT) -a --user lg-mobile --pass AumlTsj0ou
-	@tar -xzf tuxera-exfat*.tgz
-	@mkdir -p $(TARGET_OUT_EXECUTABLES)
-	@cp $(ANDROID_BUILD_TOP)/tuxera-exfat*/exfat/kernel-module/texfat.ko $(ANDROID_BUILD_TOP)/$(TARGET_OUT_EXECUTABLES)/../lib/modules/
-	@cp $(ANDROID_BUILD_TOP)/tuxera-exfat*/exfat/tools/* $(TARGET_OUT_EXECUTABLES)
-	@rm -f kheaders*.tar.bz2
-	@rm -f tuxera-exfat*.tgz
-	@rm -rf tuxera-exfat*
-	@rm -f tuxera_update.sh
+ifeq ($(KERNEL_ENABLE_EXFAT), m)
+ifeq ($(HTC_DEBUG_FLAG), DEBUG)
+	# Build exfat modules for DEBUG
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- SUBDIRS=$(BUILD_PATH)/kernel/fs/$(KERNEL_EXFAT_PATH)/objects modules
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) SUBDIRS=fs/$(KERNEL_EXFAT_PATH)/objects INSTALL_MOD_PATH=../../$(KERNEL_MODULES_INSTALL) ARCH=arm CROSS_COMPILE=arm-eabi- modules_install
+	cp kernel/fs/$(KERNEL_EXFAT_PATH)/objects/texfat.ko $(KERNEL_MODULES_OUT)/
+else
+ifeq ($(TARGET_BUILD_VARIANT), user)
+	# Build exfat modules for NonDebug-USER
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- SUBDIRS=$(BUILD_PATH)/kernel/fs/$(KERNEL_EXFAT_PATH)/objects-user modules
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) SUBDIRS=fs/$(KERNEL_EXFAT_PATH)/objects-user INSTALL_MOD_PATH=../../$(KERNEL_MODULES_INSTALL) ARCH=arm CROSS_COMPILE=arm-eabi- modules_install
+	cp kernel/fs/$(KERNEL_EXFAT_PATH)/objects-user/texfat.ko $(KERNEL_MODULES_OUT)/
+else
+	# Build exfat modules for NonDebug-USERDEBUG
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- SUBDIRS=$(BUILD_PATH)/kernel/fs/$(KERNEL_EXFAT_PATH)/objects-userdebug modules
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) SUBDIRS=fs/$(KERNEL_EXFAT_PATH)/objects-userdebug INSTALL_MOD_PATH=../../$(KERNEL_MODULES_INSTALL) ARCH=arm CROSS_COMPILE=arm-eabi- modules_install
+	cp kernel/fs/$(KERNEL_EXFAT_PATH)/objects-userdebug/texfat.ko $(KERNEL_MODULES_OUT)/
+endif
+endif
 endif
 	$(mv-modules)
 	$(clean-module-folder)
-# LGE_CHANGE_S, vmware, donghoon.nam, 2013-12-03
-	$(rm-mvp-modules)
-# LGE_CHANGE_E, vmware, donghoon.nam, 2013-12-03
 	$(append-dtb)
-
+ifeq ($(MOCANA_FIPS_MODULE), true)
+	vendor/mocana/scripts/build_dar.sh -s `pwd`/vendor/mocana -k 3.4.10 -K `pwd`/kernel -t `pwd`/$(KERNEL_MODULES_OUT) -z `pwd`/$(KERNEL_OUT)
+	$(MAKE) -C kernel ARCH=arm CROSS_COMPILE=arm-eabi- mrproper
+endif
+ifeq ($(KERNEL_ENABLE_EXFAT), m)
+	rm kernel/tuxera_update_htc.sh
+	rm kernel/update_tuxera.sh
+	rm kernel/build_exfat.sh
+	rm -rf kernel/fs/texfat*
+endif
 $(KERNEL_HEADERS_INSTALL): $(KERNEL_OUT) $(KERNEL_CONFIG)
 	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- headers_install
 
